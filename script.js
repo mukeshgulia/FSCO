@@ -137,7 +137,7 @@ function evaluateExpression(expression) {
     cellReferences.forEach((cellReference) => {
       const [refCol, refRow] = parseCellId(cellReference);
       const cellId = refCol + refRow;
-      const cellValue = cells[cellId].value || 0; // Treat empty cells as 0
+      const cellValue = cells[cellId] ? cells[cellId].value || 0 : 0; // Treat empty cells as 0
       expression = expression.replace(cellReference, cellValue);
     });
   }
