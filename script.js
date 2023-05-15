@@ -2,15 +2,15 @@
 const ROWS = 100;
 const COLUMNS = 100;
 const SUPPORTED_FUNCTIONS = {
-  SUM: sumRange
+  SUM: sumRange,
 }; // Add more supported functions to increase functionality
-
-const columnHeaders = getColumnHeaders(COLUMNS);
 
 // Object to store cell data
 const cells = {};
+const columnHeaders = getColumnHeaders(COLUMNS);
 
-// Generate column headers
+// Generates an array of column headers based on the count provided.
+// Outputs an array such as  A, B, C, ..., Z, AA, AB, AC, ...
 function getColumnHeaders(count) {
   const columnHeaders = [];
   const charCodeOffset = 65; // ASCII code for 'A'
@@ -34,19 +34,14 @@ function getColumnHeaders(count) {
 }
 
 // Parse cell ID into column and row
+// For eg, A10 will be parsed into [A, 10]
 function parseCellId(cellId) {
   const col = cellId.match(/[A-Z]+/)[0];
   const row = parseInt(cellId.match(/\d+/)[0]);
   return [col, row];
 }
 
-// Get the next column ID
-function getNextColumn(id, headers) {
-  const index = headers.findIndex((colId) => colId === id);
-  return index < headers.length - 1 ? headers[index + 1] : headers[0];
-}
-
-// Generate the spreadsheet grid
+// Generate the spreadsheet
 function generateSpreadsheet() {
   const table = document.getElementById("spreadsheet");
   const tbody = document.createElement("tbody");
@@ -64,7 +59,7 @@ function generateSpreadsheet() {
 
   tbody.appendChild(header);
 
-  // Create grid rows and cells
+  // Create rows and columns
   for (let row = 1; row <= ROWS; row++) {
     const tr = document.createElement("tr");
     const th = document.createElement("th");
@@ -82,7 +77,6 @@ function generateSpreadsheet() {
   }
 
   table.appendChild(tbody);
-  addEventToRefreshButton();
 }
 
 // Create an editable div element
@@ -98,12 +92,13 @@ function createEditableDiv(id) {
 function evaluateFormula(event) {
   const cell = event.target;
   const cellId = cell.id;
-  const formula = cell.innerText.trim().toUpperCase();
+  const formula = cell.innerText.trim();
 
   if (formula.startsWith("=")) {
-    const expression = formula.substring(1); // Remove the leading "="
+    const updatedFormula = formula.toUpperCase();
+    const expression = updatedFormula.substring(1); // Remove the leading "="
     const evaluatedValue = evaluateExpression(expression);
-    cells[cellId] = { formula, value: evaluatedValue };
+    cells[cellId] = { updatedFormula, value: evaluatedValue };
     cell.innerText = evaluatedValue;
   } else {
     cells[cellId] = { formula: "", value: formula }; // Store non-formula values directly
@@ -112,25 +107,13 @@ function evaluateFormula(event) {
   updateDependentCells(cellId);
 }
 
-// Update cells that depend on the updated cell
-function updateDependentCells(updatedCellId) {
-  Object.keys(cells).forEach((cellId) => {
-    const { formula, value } = cells[cellId];
-    if (formula.includes(updatedCellId)) {
-      const [col, row] = parseCellId(cellId);
-      const evaluatedValue = evaluateExpression(formula.substring(1), col, row);
-      cells[cellId] = { formula, value: evaluatedValue };
-      const cellElement = document.getElementById(cellId);
-      cellElement.innerText = evaluatedValue;
-    }
-  });
-}
-
 // Evaluate the expression in a cell
+// Expression can either be a function or direct computation
+// Supported function format: function_name(Range). 
+//    function_name: should be a property of SUPPORTED_FUNCTIONS
+//    Range: should be of format (CellId1: CellId2). Eg (A1: C1)
+// Only basic computation is provided, without support of paranthesis
 function evaluateExpression(expression, col, row) {
-  const cellReferenceRegex = /[A-Z]+\d+/g;
-  const cellReferences = expression.match(cellReferenceRegex) || [];
-
   const functionRegex = /([A-Z]+)\([A-Z]+\d+:[A-Z]+\d+\)/;
   if (functionRegex.test(expression)) {
     // Handle functions such as SUM, AVERAGE etc.
@@ -147,6 +130,8 @@ function evaluateExpression(expression, col, row) {
     }
   } else {
     // Handle basic computations such as + - * /
+    const cellReferenceRegex = /[A-Z]+\d+/g;
+    const cellReferences = expression.match(cellReferenceRegex) || [];
     cellReferences.forEach((cellReference) => {
       const [refCol, refRow] = parseCellId(cellReference);
       const cellId = refCol + refRow;
@@ -173,12 +158,26 @@ function evaluateFunction(functionExpression, functionName) {
   const [endCol, endRow] = parseCellId(endCell);
 
   if (SUPPORTED_FUNCTIONS.hasOwnProperty(functionName)) {
-    const getFunction = SUPPORTED_FUNCTIONS[functionName]; 
+    const getFunction = SUPPORTED_FUNCTIONS[functionName];
     return getFunction(startCol, startRow, endCol, endRow);
   }
 
   console.error("Error evaluating function:", functionName);
   return ""; // Return empty string on error
+}
+
+// Update formulas that depend on updated cell
+function updateDependentCells(updatedCellId) {
+  Object.keys(cells).forEach((cellId) => {
+    const { formula, value } = cells[cellId];
+    if (formula.includes(updatedCellId)) {
+      const [col, row] = parseCellId(cellId);
+      const evaluatedValue = evaluateExpression(formula.substring(1), col, row);
+      cells[cellId] = { formula, value: evaluatedValue };
+      const cellElement = document.getElementById(cellId);
+      cellElement.innerText = evaluatedValue;
+    }
+  });
 }
 
 // Calculate the sum of a range of cells
@@ -194,18 +193,19 @@ function sumRange(startCol, startRow, endCol, endRow) {
   return sum;
 }
 
-// Refresh the grid by clearing cell contents
-function refreshGrid() {
+// Refresh the spreadsheet by clearing div contents
+function refreshSheet() {
   const cells = Array.from(document.querySelectorAll("#spreadsheet td div"));
   cells.forEach((cell) => (cell.innerText = ""));
 }
 
-// Add click event listener to refresh button
-function addEventToRefreshButton() {
+// Make refresh button work
+function setRefresh() {
   const refreshBtn = document.getElementById("refreshBtn");
-  refreshBtn.addEventListener("click", refreshGrid);
+  refreshBtn.addEventListener("click", refreshSheet);
+  refreshBtn.disabled = false;
 }
 
 // JavaScript object to store cell values
 document.addEventListener("DOMContentLoaded", generateSpreadsheet);
-
+document.addEventListener("DOMContentLoaded", setRefresh);
