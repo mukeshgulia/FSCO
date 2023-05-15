@@ -4,7 +4,13 @@
   <link rel="stylesheet" type="text/css" href="styles.css">
 </head>
 <body>
-  <button id="refreshBtn">Refresh</button>
+  <div>
+    <button id="refreshBtn" disabled>Refresh</button>
+    <label for="rows">Rows</label>
+    <input id="rows" name="rows" type="text" value="100" onChange="rowsInputChangeHandler(event)">
+    <label for="cols">Columns</label>
+    <input id="cols" name="cols" type="text" value="100" onChange="colsInputChangeHandler(event)">
+  </div>
   <table id="spreadsheet"></table>
   <script src="script.js"></script>
 </body>

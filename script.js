@@ -1,13 +1,14 @@
 // Constants
-const ROWS = 100;
-const COLUMNS = 100;
+let ROWS =  parseInt(document.getElementById("rows").value);
+let COLUMNS = parseInt(document.getElementById("cols").value);;
+let columnHeaders = getColumnHeaders(COLUMNS);
+
 const SUPPORTED_FUNCTIONS = {
   SUM: sumRange,
 }; // Add more supported functions to increase functionality
 
 // Object to store cell data
 const cells = {};
-const columnHeaders = getColumnHeaders(COLUMNS);
 
 // Generates an array of column headers based on the count provided.
 // Outputs an array such as  A, B, C, ..., Z, AA, AB, AC, ...
@@ -44,8 +45,9 @@ function parseCellId(cellId) {
 // Generate the spreadsheet
 function generateSpreadsheet() {
   const table = document.getElementById("spreadsheet");
+  table.innerHTML = "";
+  
   const tbody = document.createElement("tbody");
-
   // Create header row
   const header = document.createElement("tr");
   header.appendChild(document.createElement("th")); // Empty column for row labels
@@ -98,7 +100,7 @@ function evaluateFormula(event) {
     const updatedFormula = formula.toUpperCase();
     const expression = updatedFormula.substring(1); // Remove the leading "="
     const evaluatedValue = evaluateExpression(expression);
-    cells[cellId] = { updatedFormula, value: evaluatedValue };
+    cells[cellId] = { formula: updatedFormula, value: evaluatedValue };
     cell.innerText = evaluatedValue;
   } else {
     cells[cellId] = { formula: "", value: formula }; // Store non-formula values directly
@@ -109,11 +111,11 @@ function evaluateFormula(event) {
 
 // Evaluate the expression in a cell
 // Expression can either be a function or direct computation
-// Supported function format: function_name(Range). 
+// Supported function format: function_name(Range).
 //    function_name: should be a property of SUPPORTED_FUNCTIONS
 //    Range: should be of format (CellId1: CellId2). Eg (A1: C1)
 // Only basic computation is provided, without support of paranthesis
-function evaluateExpression(expression, col, row) {
+function evaluateExpression(expression) {
   const functionRegex = /([A-Z]+)\([A-Z]+\d+:[A-Z]+\d+\)/;
   if (functionRegex.test(expression)) {
     // Handle functions such as SUM, AVERAGE etc.
@@ -135,12 +137,13 @@ function evaluateExpression(expression, col, row) {
     cellReferences.forEach((cellReference) => {
       const [refCol, refRow] = parseCellId(cellReference);
       const cellId = refCol + refRow;
-      const cellValue = cells[cellId] || 0; // Treat empty cells as 0
-      expression = expression.replace(cellReference, cellValue.value);
+      const cellValue = cells[cellId].value || 0; // Treat empty cells as 0
+      expression = expression.replace(cellReference, cellValue);
     });
   }
 
   try {
+    console.log(expression);
     const result = eval(expression);
     return isNaN(result) ? "" : result; // Return empty string if the result is not a valid number
   } catch (error) {
@@ -186,15 +189,15 @@ function sumRange(startCol, startRow, endCol, endRow) {
   for (let row = startRow; row <= endRow; row++) {
     for (let col = startCol.charCodeAt(0); col <= endCol.charCodeAt(0); col++) {
       const cellId = String.fromCharCode(col) + row;
-      const cellValue = cells[cellId] || 0;
-      sum += parseFloat(cellValue.value);
+      const cellValue = cells[cellId] ? cells[cellId].value || 0 : 0;
+      sum += parseFloat(cellValue);
     }
   }
   return sum;
 }
 
 // Refresh the spreadsheet by clearing div contents
-function refreshSheet() {
+function refreshHandler() {
   const cells = Array.from(document.querySelectorAll("#spreadsheet td div"));
   cells.forEach((cell) => (cell.innerText = ""));
 }
@@ -202,9 +205,21 @@ function refreshSheet() {
 // Make refresh button work
 function setRefresh() {
   const refreshBtn = document.getElementById("refreshBtn");
-  refreshBtn.addEventListener("click", refreshSheet);
+  refreshBtn.addEventListener("click", refreshHandler);
   refreshBtn.disabled = false;
 }
+
+function rowsInputChangeHandler(event) {
+  ROWS = event.target.value;
+  generateSpreadsheet();
+}
+
+function colsInputChangeHandler(event) {
+  COLUMNS = event.target.value;
+  columnHeaders = getColumnHeaders(COLUMNS);
+  generateSpreadsheet();
+}
+
 
 // JavaScript object to store cell values
 document.addEventListener("DOMContentLoaded", generateSpreadsheet);
